@@ -1,0 +1,12 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 1.5rem;
+    background-color: rgb(239, 140, 11);
+    color: rgb(87, 11, 239);
+  }
+
+  input,
+  button {
+    background-color: rgb(239, 140, 11);
+    color:rgb(247, 242, 242)
+  }
