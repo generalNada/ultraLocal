@@ -1,12 +1,47 @@
 body {
-    font-family: Arial, sans-serif;
-    margin: 1.5rem;
-    background-color: rgb(239, 140, 11);
-    color: rgb(87, 11, 239);
-  }
+  font-family: Arial, sans-serif;
+  margin: 1.5rem;
+  background-color: rgb(239, 140, 11);
+  color: rgb(87, 11, 239);
+}
 
-  input,
-  button {
-    background-color: rgb(239, 140, 11);
-    color:rgb(247, 242, 242)
-  }
+input,
+button {
+  background-color: rgb(239, 140, 11);
+  color: rgb(247, 242, 242);
+}
+
+.note-item {
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+
+.note-item:hover::marker {
+  color: rgb(11, 87, 239);
+  font-weight: bold;
+}
+
+.note-text {
+  display: inline-block;
+  padding: 2px 4px;
+}
+
+.note-controls {
+  display: inline;
+  margin-left: 10px;
+}
+
+#noteList {
+  font-size: 2rem;
+}
+
+.note-link {
+  color: rgb(11, 87, 239);
+  text-decoration: underline;
+  font-weight: bold;
+}
+
+.note-link:hover {
+  color: rgb(87, 11, 239);
+  text-decoration: none;
+}
