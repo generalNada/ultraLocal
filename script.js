@@ -5,9 +5,15 @@ const noteList = document.getElementById("noteList");
 const searchInput = document.getElementById("searchInput");
 const dateInput = document.getElementById("dateInput");
 const viewAllBtn = document.getElementById("viewAllBtn");
+const toggleNotesBtn = document.getElementById("toggleNotesBtn");
 
 // Load notes when the page loads
-document.addEventListener("DOMContentLoaded", loadNotes);
+document.addEventListener("DOMContentLoaded", () => {
+  loadNotes();
+  // Hide notes by default
+  noteList.style.display = "none";
+  toggleNotesBtn.textContent = "Show Notes";
+});
 
 // Helper function to check if a string is a URL
 function isURL(str) {
@@ -247,6 +253,11 @@ searchInput.addEventListener("input", () => {
     note.content.toLowerCase().includes(searchText)
   );
   renderNotes(filteredNotes);
+  // Show notes when searching
+  if (searchText.length > 0) {
+    noteList.style.display = "block";
+    toggleNotesBtn.textContent = "Hide Notes";
+  }
 });
 
 // Filter notes by date
@@ -257,6 +268,11 @@ dateInput.addEventListener("change", () => {
     (note) => note.created_at === selectedDate
   );
   renderNotes(filteredNotes);
+  // Show notes when filtering by date
+  if (selectedDate) {
+    noteList.style.display = "block";
+    toggleNotesBtn.textContent = "Hide Notes";
+  }
 });
 
 const clearUIBtn = document.getElementById("clearUIBtn");
@@ -271,4 +287,18 @@ viewAllBtn.addEventListener("click", () => {
   renderNotes(notes);
   searchInput.value = ""; // Clear search input
   dateInput.value = ""; // Clear date input
+  // Show notes when viewing all
+  noteList.style.display = "block";
+  toggleNotesBtn.textContent = "Hide Notes";
+});
+
+// Toggle notes visibility
+toggleNotesBtn.addEventListener("click", () => {
+  if (noteList.style.display === "none") {
+    noteList.style.display = "block";
+    toggleNotesBtn.textContent = "Hide Notes";
+  } else {
+    noteList.style.display = "none";
+    toggleNotesBtn.textContent = "Show Notes";
+  }
 });
