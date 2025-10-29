@@ -36,10 +36,13 @@ addNoteBtn.addEventListener("click", () => {
   if (!content) return alert("Note content cannot be empty.");
 
   const notes = getNotesFromStorage();
+  const now = new Date();
   const newNote = {
     id: Date.now(), // Unique ID based on timestamp
     content,
-    created_at: new Date().toISOString().split("T")[0], // Save current date
+    created_at: now.toISOString().split("T")[0], // Save current date
+    created_time: now.toTimeString().split(" ")[0], // Save current time (HH:MM:SS)
+    timestamp: now.getTime(), // Full timestamp for sorting
   };
 
   notes.push(newNote);
@@ -49,10 +52,49 @@ addNoteBtn.addEventListener("click", () => {
   noteInput.value = ""; // Clear the input
 });
 
-// Render all notes
+// Render all notes with month headers
 function renderNotes(notes) {
   noteList.innerHTML = ""; // Clear existing notes
-  notes.forEach((note) => addNoteToUI(note));
+
+  if (notes.length === 0) return;
+
+  // Sort notes by timestamp (newest first)
+  const sortedNotes = notes.sort(
+    (a, b) => (b.timestamp || 0) - (a.timestamp || 0)
+  );
+
+  // Group notes by month
+  const notesByMonth = {};
+  sortedNotes.forEach((note) => {
+    const date = new Date(note.created_at);
+    const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
+    const monthName = date.toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+    });
+
+    if (!notesByMonth[monthKey]) {
+      notesByMonth[monthKey] = {
+        monthName,
+        notes: [],
+      };
+    }
+    notesByMonth[monthKey].notes.push(note);
+  });
+
+  // Render each month section
+  Object.keys(notesByMonth).forEach((monthKey) => {
+    const monthData = notesByMonth[monthKey];
+
+    // Create month header
+    const monthHeader = document.createElement("h2");
+    monthHeader.className = "month-header";
+    monthHeader.textContent = monthData.monthName;
+    noteList.appendChild(monthHeader);
+
+    // Render notes for this month
+    monthData.notes.forEach((note) => addNoteToUI(note));
+  });
 }
 
 // Add a single note to the UI
@@ -60,6 +102,10 @@ function addNoteToUI(note) {
   const li = document.createElement("li");
   li.dataset.id = note.id;
   li.className = "note-item";
+
+  // Create note content container
+  const noteContent = document.createElement("div");
+  noteContent.className = "note-content";
 
   // Create a span for the note text (or link if it's a URL)
   const noteText = document.createElement("span");
@@ -79,6 +125,29 @@ function addNoteToUI(note) {
   } else {
     noteText.textContent = note.content;
   }
+
+  // Create date/time display
+  const noteDate = document.createElement("div");
+  noteDate.className = "note-date";
+
+  const date = new Date(note.created_at);
+  const formattedDate = date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year:
+      date.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined,
+  });
+
+  const time = note.created_time || "12:00:00";
+  const formattedTime = time.split(":").slice(0, 2).join(":"); // Show HH:MM only
+
+  noteDate.innerHTML = `
+    <span class="date">${formattedDate}</span>
+    <span class="time">${formattedTime}</span>
+  `;
+
+  noteContent.appendChild(noteText);
+  noteContent.appendChild(noteDate);
 
   // Create a container for controls
   const controlsContainer = document.createElement("div");
@@ -165,7 +234,7 @@ function addNoteToUI(note) {
     }
   });
 
-  li.appendChild(noteText);
+  li.appendChild(noteContent);
   li.appendChild(controlsContainer);
   noteList.appendChild(li);
 }
