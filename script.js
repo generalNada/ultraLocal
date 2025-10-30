@@ -22,6 +22,73 @@ function isURL(str) {
   return urlPattern.test(str);
 }
 
+// Helper function to find URLs in text (including URLs with text before/after)
+function findURLsInText(text) {
+  // Match URLs that might have @ prefix or be part of text
+  // Pattern matches: http://, https://, www., or URLs starting with domain
+  const urlPattern =
+    /(?:^|[^@])(?:@)?(https?:\/\/[^\s]+|www\.[^\s]+\.[^\s]+|[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+[^\s]*)/gi;
+  return text.match(urlPattern) || [];
+}
+
+// Helper function to convert text with URLs into HTML with clickable links
+function convertTextToLinks(text) {
+  // Pattern to match URLs (including those prefixed with @)
+  // Matches: @https://..., https://..., http://..., or domain-like patterns
+  const urlPattern =
+    /(@)?(https?:\/\/[^\s<>"']+|www\.[^\s<>"']+\.[^\s<>"']+|[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+(?::[0-9]+)?(?:\/[^\s<>"']*)?)/gi;
+
+  const parts = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = urlPattern.exec(text)) !== null) {
+    // Add text before the URL
+    if (match.index > lastIndex) {
+      parts.push({
+        type: "text",
+        content: text.substring(lastIndex, match.index),
+      });
+    }
+
+    // Extract the URL (remove @ prefix if present)
+    const urlPrefix = match[1] || ""; // @ symbol if present
+    const urlString = match[2]; // The actual URL
+
+    // Normalize URL - trim and clean up
+    let href = urlString.trim();
+    // Remove trailing punctuation that might not be part of URL (except /)
+    href = href.replace(/[.,;:!?]+$/, "");
+
+    if (!href.startsWith("http://") && !href.startsWith("https://")) {
+      href = "https://" + href;
+    }
+
+    parts.push({
+      type: "link",
+      href: href,
+      displayText: urlPrefix + urlString,
+    });
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Add remaining text after last URL
+  if (lastIndex < text.length) {
+    parts.push({
+      type: "text",
+      content: text.substring(lastIndex),
+    });
+  }
+
+  // If no URLs found, return original text
+  if (parts.length === 0) {
+    return [{ type: "text", content: text }];
+  }
+
+  return parts;
+}
+
 function loadNotes() {
   const notes = getNotesFromStorage();
   renderNotes(notes);
@@ -113,24 +180,29 @@ function addNoteToUI(note) {
   const noteContent = document.createElement("div");
   noteContent.className = "note-content";
 
-  // Create a span for the note text (or link if it's a URL)
+  // Create a span for the note text with embedded links
   const noteText = document.createElement("span");
   noteText.className = "note-text";
 
-  // Check if the content is a URL
-  if (isURL(note.content)) {
-    const link = document.createElement("a");
-    link.href = note.content.startsWith("http")
-      ? note.content
-      : "https://" + note.content;
-    link.textContent = note.content;
-    link.target = "_blank"; // Open in new tab
-    link.rel = "noopener noreferrer"; // Security best practice
-    link.className = "note-link";
-    noteText.appendChild(link);
-  } else {
-    noteText.textContent = note.content;
-  }
+  // Convert text with URLs into HTML elements
+  const textParts = convertTextToLinks(note.content);
+  const links = [];
+
+  textParts.forEach((part) => {
+    if (part.type === "link") {
+      const link = document.createElement("a");
+      link.href = part.href;
+      link.textContent = part.displayText;
+      link.target = "_blank"; // Open in new tab
+      link.rel = "noopener noreferrer"; // Security best practice
+      link.className = "note-link";
+      noteText.appendChild(link);
+      links.push(link);
+    } else {
+      const textNode = document.createTextNode(part.content);
+      noteText.appendChild(textNode);
+    }
+  });
 
   // Create date/time display
   const noteDate = document.createElement("div");
@@ -160,10 +232,41 @@ function addNoteToUI(note) {
   controlsContainer.className = "note-controls";
   controlsContainer.style.display = "none"; // Hidden by default
 
+  // Set up link click handlers now that controlsContainer exists
+  links.forEach((link) => {
+    link.addEventListener("click", (e) => {
+      // Allow navigation with Ctrl/Cmd+click
+      if (e.ctrlKey || e.metaKey) {
+        return; // Let default behavior happen
+      }
+
+      // If controls are visible, allow navigation
+      if (controlsContainer.style.display !== "none") {
+        return; // Let default behavior happen
+      }
+
+      // Otherwise, prevent navigation and show controls
+      e.preventDefault();
+      e.stopPropagation();
+
+      // Show controls
+      document.querySelectorAll(".note-controls").forEach((controls) => {
+        if (controls !== controlsContainer) {
+          controls.style.display = "none";
+        }
+      });
+
+      controlsContainer.style.display = "inline";
+    });
+  });
+
   // Create Edit button
   const editBtn = document.createElement("button");
   editBtn.textContent = "Edit";
-  editBtn.addEventListener("click", () => {
+  editBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+
     const input = document.createElement("input");
     input.type = "text";
     input.value = note.content;
@@ -175,7 +278,10 @@ function addNoteToUI(note) {
     li.appendChild(input);
     li.appendChild(saveBtn);
 
-    saveBtn.addEventListener("click", () => {
+    saveBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+
       const newContent = input.value.trim();
       if (!newContent) return alert("Note content cannot be empty.");
 
@@ -193,7 +299,8 @@ function addNoteToUI(note) {
   deleteBtn.textContent = "Delete";
   let deleteClickCount = 0;
   deleteBtn.addEventListener("click", (e) => {
-    e.stopPropagation(); // Prevent triggering the note text click
+    e.stopPropagation();
+    e.preventDefault();
     deleteClickCount++;
 
     if (deleteClickCount === 1) {
@@ -211,7 +318,9 @@ function addNoteToUI(note) {
   // Create Save and Remove button
   const removeBtn = document.createElement("button");
   removeBtn.textContent = "Save and Remove";
-  removeBtn.addEventListener("click", () => {
+  removeBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    e.preventDefault();
     li.remove(); // Remove the note from the UI only
   });
 
@@ -220,10 +329,33 @@ function addNoteToUI(note) {
   controlsContainer.appendChild(deleteBtn);
   controlsContainer.appendChild(removeBtn);
 
+  // Prevent any clicks on controls from bubbling up
+  controlsContainer.addEventListener("click", (e) => {
+    e.stopPropagation();
+  });
+
   // Add click event to the list item (bullet area) to toggle controls
   li.addEventListener("click", (e) => {
-    // Only toggle if clicking on the li itself (the bullet area) or note-text span (but not links)
-    if (e.target === li || (e.target === noteText && !isURL(note.content))) {
+    // Don't toggle if clicking on buttons or controls container
+    if (
+      e.target.tagName === "BUTTON" ||
+      e.target.closest(".note-controls") ||
+      e.target.closest("button")
+    ) {
+      return;
+    }
+
+    // For links, the link's own click handler will manage showing controls
+    if (e.target.tagName === "A") {
+      return;
+    }
+
+    // Only toggle if clicking on the li itself or note-text span
+    if (
+      e.target === li ||
+      e.target === noteText ||
+      e.target.closest(".note-content")
+    ) {
       // Hide all other controls first
       document.querySelectorAll(".note-controls").forEach((controls) => {
         if (controls !== controlsContainer) {

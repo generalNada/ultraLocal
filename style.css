@@ -192,6 +192,8 @@ button:active {
   display: inline-flex;
   gap: 0.5rem;
   margin-left: 1rem;
+  position: relative;
+  z-index: 10;
 }
 
 .note-controls button {
@@ -201,6 +203,9 @@ button:active {
   color: #64748b;
   border: 1px solid #e2e8f0;
   box-shadow: none;
+  position: relative;
+  z-index: 11;
+  cursor: pointer;
 }
 
 .note-controls button:hover {
