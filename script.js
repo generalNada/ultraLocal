@@ -4,7 +4,6 @@ const addNoteBtn = document.getElementById("addNoteBtn");
 const noteList = document.getElementById("noteList");
 const searchInput = document.getElementById("searchInput");
 const dateInput = document.getElementById("dateInput");
-const viewAllBtn = document.getElementById("viewAllBtn");
 const toggleNotesBtn = document.getElementById("toggleNotesBtn");
 
 // Load notes when the page loads
@@ -14,6 +13,23 @@ document.addEventListener("DOMContentLoaded", () => {
   noteList.style.display = "none";
   toggleNotesBtn.textContent = "Show Notes";
 });
+
+// Toggle notes visibility
+// Ensure that when showing, we also re-render from storage so notes are retrievable
+if (toggleNotesBtn) {
+  toggleNotesBtn.addEventListener("click", () => {
+    if (noteList.style.display === "none") {
+      // Always render from storage when showing
+      const notes = getNotesFromStorage();
+      renderNotes(notes);
+      noteList.style.display = "block";
+      toggleNotesBtn.textContent = "Hide Notes";
+    } else {
+      noteList.style.display = "none";
+      toggleNotesBtn.textContent = "Show Notes";
+    }
+  });
+}
 
 // Helper function to check if a string is a URL
 function isURL(str) {
@@ -404,33 +420,5 @@ dateInput.addEventListener("change", () => {
   if (selectedDate) {
     noteList.style.display = "block";
     toggleNotesBtn.textContent = "Hide Notes";
-  }
-});
-
-const clearUIBtn = document.getElementById("clearUIBtn");
-
-clearUIBtn.addEventListener("click", () => {
-  noteList.innerHTML = ""; // Clear all notes from the UI
-});
-
-// View All notes button
-viewAllBtn.addEventListener("click", () => {
-  const notes = getNotesFromStorage();
-  renderNotes(notes);
-  searchInput.value = ""; // Clear search input
-  dateInput.value = ""; // Clear date input
-  // Show notes when viewing all
-  noteList.style.display = "block";
-  toggleNotesBtn.textContent = "Hide Notes";
-});
-
-// Toggle notes visibility
-toggleNotesBtn.addEventListener("click", () => {
-  if (noteList.style.display === "none") {
-    noteList.style.display = "block";
-    toggleNotesBtn.textContent = "Hide Notes";
-  } else {
-    noteList.style.display = "none";
-    toggleNotesBtn.textContent = "Show Notes";
   }
 });
